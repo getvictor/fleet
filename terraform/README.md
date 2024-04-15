@@ -1,7 +1,9 @@
-This module provides a basic Fleet setup. This assumes that you bring nothing to the installation.
-If you want to bring your own VPC/database/cache nodes/ECS cluster, then use one of the submodules provided.
+# terraform
+
+This module provides a basic Fleet setup. This assumes that you bring nothing to the installation. If you want to bring your own VPC/database/cache nodes/ECS cluster, then use one of the submodules provided.
 
 To quickly list all available module versions you can run:
+
 ```shell
 git tag |grep '^tf'
 ```
@@ -9,11 +11,12 @@ git tag |grep '^tf'
 The following is the module layout, so you can navigate to the module that you want:
 
 * Root module (use this to get a Fleet instance ASAP with minimal setup)
-    * BYO-VPC (use this if you want to install Fleet inside an existing VPC)
-        * BYO-database (use this if you want to use an existing database and cache node)
-            * BYO-ECS (use this if you want to bring your own everything but Fleet ECS services)
+  * BYO-VPC (use this if you want to install Fleet inside an existing VPC)
+    * BYO-database (use this if you want to use an existing database and cache node)
+      * BYO-ECS (use this if you want to bring your own everything but Fleet ECS services)
 
-# Migrating from existing Dogfood code
+## Migrating from existing Dogfood code
+
 The below code describes how to migrate from existing Dogfood code
 
 ```hcl
@@ -35,55 +38,443 @@ moved {
 
 This focuses on the resources that are "heavy" or store data. Note that the ALB cannot be moved like this because Dogfood uses the `aws_alb` resource and the module uses the `aws_lb` resource. The resources are aliases of eachother, but Terraform can't recognize that.
 
-# How to improve this module
-If this module somehow doesn't fit your needs, feel free to contact us by
-opening a ticket, or contacting your contact at Fleet. Our goal is to make this module
-fit all needs within AWS, so we will try to find a solution so that this module fits your needs.
+## How to improve this module
 
-If you want to make the changes yourself, simply make a PR into main with your additions.
-We would ask that you make sure that variables are defined as null if there is
-no default that makes sense and that variable changes are reflected all the way up the stack.
+If this module somehow doesn't fit your needs, feel free to contact us by opening a ticket, or contacting your contact at Fleet. Our goal is to make this module fit all needs within AWS, so we will try to find a solution so that this module fits your needs.
 
-# How to update this readme
+If you want to make the changes yourself, simply make a PR into main with your additions. We would ask that you make sure that variables are defined as null if there is no default that makes sense and that variable changes are reflected all the way up the stack.
+
+## How to update this readme
+
 Edit .header.md and run `terraform-docs markdown . > README.md`
 
-## Requirements
+### Requirements
 
-| Name | Version |
-|------|---------|
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3.8 |
+| Name                                   | Version  |
+| -------------------------------------- | -------- |
+| [terraform](./#requirement\_terraform) | >= 1.3.8 |
 
-## Providers
+### Providers
 
 No providers.
 
-## Modules
+### Modules
 
-| Name | Source | Version |
-|------|--------|---------|
-| <a name="module_byo-vpc"></a> [byo-vpc](#module\_byo-vpc) | ./byo-vpc | n/a |
-| <a name="module_vpc"></a> [vpc](#module\_vpc) | terraform-aws-modules/vpc/aws | 5.1.2 |
+| Name                          | Source                        | Version |
+| ----------------------------- | ----------------------------- | ------- |
+| [byo-vpc](./#module\_byo-vpc) | ./byo-vpc                     | n/a     |
+| [vpc](./#module\_vpc)         | terraform-aws-modules/vpc/aws | 5.1.2   |
 
-## Resources
+### Resources
 
 No resources.
 
-## Inputs
+### Inputs
 
-| Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
-| <a name="input_alb_config"></a> [alb\_config](#input\_alb\_config) | n/a | <pre>object({<br>    name                 = optional(string, "fleet")<br>    security_groups      = optional(list(string), [])<br>    access_logs          = optional(map(string), {})<br>    allowed_cidrs        = optional(list(string), ["0.0.0.0/0"])<br>    allowed_ipv6_cidrs   = optional(list(string), ["::/0"])<br>    egress_cidrs         = optional(list(string), ["0.0.0.0/0"])<br>    egress_ipv6_cidrs    = optional(list(string), ["::/0"])<br>    extra_target_groups  = optional(any, [])<br>    https_listener_rules = optional(any, [])<br>    tls_policy           = optional(string, "ELBSecurityPolicy-TLS-1-2-2017-01")<br>  })</pre> | `{}` | no |
-| <a name="input_certificate_arn"></a> [certificate\_arn](#input\_certificate\_arn) | n/a | `string` | n/a | yes |
-| <a name="input_ecs_cluster"></a> [ecs\_cluster](#input\_ecs\_cluster) | The config for the terraform-aws-modules/ecs/aws module | <pre>object({<br>    autoscaling_capacity_providers = optional(any, {})<br>    cluster_configuration = optional(any, {<br>      execute_command_configuration = {<br>        logging = "OVERRIDE"<br>        log_configuration = {<br>          cloud_watch_log_group_name = "/aws/ecs/aws-ec2"<br>        }<br>      }<br>    })<br>    cluster_name = optional(string, "fleet")<br>    cluster_settings = optional(map(string), {<br>      "name" : "containerInsights",<br>      "value" : "enabled",<br>    })<br>    create                                = optional(bool, true)<br>    default_capacity_provider_use_fargate = optional(bool, true)<br>    fargate_capacity_providers = optional(any, {<br>      FARGATE = {<br>        default_capacity_provider_strategy = {<br>          weight = 100<br>        }<br>      }<br>      FARGATE_SPOT = {<br>        default_capacity_provider_strategy = {<br>          weight = 0<br>        }<br>      }<br>    })<br>    tags = optional(map(string))<br>  })</pre> | <pre>{<br>  "autoscaling_capacity_providers": {},<br>  "cluster_configuration": {<br>    "execute_command_configuration": {<br>      "log_configuration": {<br>        "cloud_watch_log_group_name": "/aws/ecs/aws-ec2"<br>      },<br>      "logging": "OVERRIDE"<br>    }<br>  },<br>  "cluster_name": "fleet",<br>  "cluster_settings": {<br>    "name": "containerInsights",<br>    "value": "enabled"<br>  },<br>  "create": true,<br>  "default_capacity_provider_use_fargate": true,<br>  "fargate_capacity_providers": {<br>    "FARGATE": {<br>      "default_capacity_provider_strategy": {<br>        "weight": 100<br>      }<br>    },<br>    "FARGATE_SPOT": {<br>      "default_capacity_provider_strategy": {<br>        "weight": 0<br>      }<br>    }<br>  },<br>  "tags": {}<br>}</pre> | no |
-| <a name="input_fleet_config"></a> [fleet\_config](#input\_fleet\_config) | The configuration object for Fleet itself. Fields that default to null will have their respective resources created if not specified. | <pre>object({<br>    mem                          = optional(number, 4096)<br>    cpu                          = optional(number, 512)<br>    image                        = optional(string, "fleetdm/fleet:v4.40.0")<br>    family                       = optional(string, "fleet")<br>    sidecars                     = optional(list(any), [])<br>    depends_on                   = optional(list(any), [])<br>    mount_points                 = optional(list(any), [])<br>    volumes                      = optional(list(any), [])<br>    extra_environment_variables  = optional(map(string), {})<br>    extra_iam_policies           = optional(list(string), [])<br>    extra_execution_iam_policies = optional(list(string), [])<br>    extra_secrets                = optional(map(string), {})<br>    security_groups              = optional(list(string), null)<br>    security_group_name          = optional(string, "fleet")<br>    iam_role_arn                 = optional(string, null)<br>    service = optional(object({<br>      name = optional(string, "fleet")<br>      }), {<br>      name = "fleet"<br>    })<br>    database = optional(object({<br>      password_secret_arn = string<br>      user                = string<br>      database            = string<br>      address             = string<br>      rr_address          = optional(string, null)<br>      }), {<br>      password_secret_arn = null<br>      user                = null<br>      database            = null<br>      address             = null<br>      rr_address          = null<br>    })<br>    redis = optional(object({<br>      address = string<br>      use_tls = optional(bool, true)<br>      }), {<br>      address = null<br>      use_tls = true<br>    })<br>    awslogs = optional(object({<br>      name      = optional(string, null)<br>      region    = optional(string, null)<br>      create    = optional(bool, true)<br>      prefix    = optional(string, "fleet")<br>      retention = optional(number, 5)<br>      }), {<br>      name      = null<br>      region    = null<br>      prefix    = "fleet"<br>      retention = 5<br>    })<br>    loadbalancer = optional(object({<br>      arn = string<br>      }), {<br>      arn = null<br>    })<br>    extra_load_balancers = optional(list(any), [])<br>    networking = optional(object({<br>      subnets         = list(string)<br>      security_groups = optional(list(string), null)<br>      }), {<br>      subnets         = null<br>      security_groups = null<br>    })<br>    autoscaling = optional(object({<br>      max_capacity                 = optional(number, 5)<br>      min_capacity                 = optional(number, 1)<br>      memory_tracking_target_value = optional(number, 80)<br>      cpu_tracking_target_value    = optional(number, 80)<br>      }), {<br>      max_capacity                 = 5<br>      min_capacity                 = 1<br>      memory_tracking_target_value = 80<br>      cpu_tracking_target_value    = 80<br>    })<br>    iam = optional(object({<br>      role = optional(object({<br>        name        = optional(string, "fleet-role")<br>        policy_name = optional(string, "fleet-iam-policy")<br>        }), {<br>        name        = "fleet-role"<br>        policy_name = "fleet-iam-policy"<br>      })<br>      execution = optional(object({<br>        name        = optional(string, "fleet-execution-role")<br>        policy_name = optional(string, "fleet-execution-role")<br>        }), {<br>        name        = "fleet-execution-role"<br>        policy_name = "fleet-iam-policy-execution"<br>      })<br>      }), {<br>      name = "fleetdm-execution-role"<br>    })<br>  })</pre> | <pre>{<br>  "autoscaling": {<br>    "cpu_tracking_target_value": 80,<br>    "max_capacity": 5,<br>    "memory_tracking_target_value": 80,<br>    "min_capacity": 1<br>  },<br>  "awslogs": {<br>    "create": true,<br>    "name": null,<br>    "prefix": "fleet",<br>    "region": null,<br>    "retention": 5<br>  },<br>  "cpu": 256,<br>  "database": {<br>    "address": null,<br>    "database": null,<br>    "password_secret_arn": null,<br>    "rr_address": null,<br>    "user": null<br>  },<br>  "depends_on": [],<br>  "extra_environment_variables": {},<br>  "extra_execution_iam_policies": [],<br>  "extra_iam_policies": [],<br>  "extra_load_balancers": [],<br>  "extra_secrets": {},<br>  "family": "fleet",<br>  "iam": {<br>    "execution": {<br>      "name": "fleet-execution-role",<br>      "policy_name": "fleet-iam-policy-execution"<br>    },<br>    "role": {<br>      "name": "fleet-role",<br>      "policy_name": "fleet-iam-policy"<br>    }<br>  },<br>  "iam_role_arn": null,<br>  "image": "fleetdm/fleet:v4.31.1",<br>  "loadbalancer": {<br>    "arn": null<br>  },<br>  "mem": 512,<br>  "mount_points": [],<br>  "networking": {<br>    "security_groups": null,<br>    "subnets": null<br>  },<br>  "redis": {<br>    "address": null,<br>    "use_tls": true<br>  },<br>  "security_group_name": "fleet",<br>  "security_groups": null,<br>  "service": {<br>    "name": "fleet"<br>  },<br>  "sidecars": [],<br>  "volumes": []<br>}</pre> | no |
-| <a name="input_migration_config"></a> [migration\_config](#input\_migration\_config) | The configuration object for Fleet's migration task. | <pre>object({<br>    mem = number<br>    cpu = number<br>  })</pre> | <pre>{<br>  "cpu": 1024,<br>  "mem": 2048<br>}</pre> | no |
-| <a name="input_rds_config"></a> [rds\_config](#input\_rds\_config) | The config for the terraform-aws-modules/rds-aurora/aws module | <pre>object({<br>    name                            = optional(string, "fleet")<br>    engine_version                  = optional(string, "8.0.mysql_aurora.3.02.2")<br>    instance_class                  = optional(string, "db.t4g.large")<br>    subnets                         = optional(list(string), [])<br>    allowed_security_groups         = optional(list(string), [])<br>    allowed_cidr_blocks             = optional(list(string), [])<br>    apply_immediately               = optional(bool, true)<br>    monitoring_interval             = optional(number, 10)<br>    db_parameter_group_name         = optional(string)<br>    db_parameters                   = optional(map(string), {})<br>    db_cluster_parameter_group_name = optional(string)<br>    db_cluster_parameters           = optional(map(string), {})<br>    enabled_cloudwatch_logs_exports = optional(list(string), [])<br>    master_username                 = optional(string, "fleet")<br>    snapshot_identifier             = optional(string)<br>    cluster_tags                    = optional(map(string), {})<br>  })</pre> | <pre>{<br>  "allowed_cidr_blocks": [],<br>  "allowed_security_groups": [],<br>  "apply_immediately": true,<br>  "cluster_tags": {},<br>  "db_cluster_parameter_group_name": null,<br>  "db_cluster_parameters": {},<br>  "db_parameter_group_name": null,<br>  "db_parameters": {},<br>  "enabled_cloudwatch_logs_exports": [],<br>  "engine_version": "8.0.mysql_aurora.3.02.2",<br>  "instance_class": "db.t4g.large",<br>  "master_username": "fleet",<br>  "monitoring_interval": 10,<br>  "name": "fleet",<br>  "snapshot_identifier": null,<br>  "subnets": []<br>}</pre> | no |
-| <a name="input_redis_config"></a> [redis\_config](#input\_redis\_config) | n/a | <pre>object({<br>    name                          = optional(string, "fleet")<br>    replication_group_id          = optional(string)<br>    elasticache_subnet_group_name = optional(string)<br>    allowed_security_group_ids    = optional(list(string), [])<br>    subnets                       = optional(list(string))<br>    availability_zones            = optional(list(string))<br>    cluster_size                  = optional(number, 3)<br>    instance_type                 = optional(string, "cache.m5.large")<br>    apply_immediately             = optional(bool, true)<br>    automatic_failover_enabled    = optional(bool, false)<br>    engine_version                = optional(string, "6.x")<br>    family                        = optional(string, "redis6.x")<br>    at_rest_encryption_enabled    = optional(bool, true)<br>    transit_encryption_enabled    = optional(bool, true)<br>    parameter = optional(list(object({<br>      name  = string<br>      value = string<br>    })), [])<br>    log_delivery_configuration = optional(list(map(any)), [])<br>    tags                       = optional(map(string), {})<br>  })</pre> | <pre>{<br>  "allowed_security_group_ids": [],<br>  "apply_immediately": true,<br>  "at_rest_encryption_enabled": true,<br>  "automatic_failover_enabled": false,<br>  "availability_zones": null,<br>  "cluster_size": 3,<br>  "elasticache_subnet_group_name": null,<br>  "engine_version": "6.x",<br>  "family": "redis6.x",<br>  "instance_type": "cache.m5.large",<br>  "log_delivery_configuration": [],<br>  "name": "fleet",<br>  "parameter": [],<br>  "replication_group_id": null,<br>  "subnets": null,<br>  "tags": {},<br>  "transit_encryption_enabled": true<br>}</pre> | no |
-| <a name="input_vpc"></a> [vpc](#input\_vpc) | n/a | <pre>object({<br>    name                = optional(string, "fleet")<br>    cidr                = optional(string, "10.10.0.0/16")<br>    azs                 = optional(list(string), ["us-east-2a", "us-east-2b", "us-east-2c"])<br>    private_subnets     = optional(list(string), ["10.10.1.0/24", "10.10.2.0/24", "10.10.3.0/24"])<br>    public_subnets      = optional(list(string), ["10.10.11.0/24", "10.10.12.0/24", "10.10.13.0/24"])<br>    database_subnets    = optional(list(string), ["10.10.21.0/24", "10.10.22.0/24", "10.10.23.0/24"])<br>    elasticache_subnets = optional(list(string), ["10.10.31.0/24", "10.10.32.0/24", "10.10.33.0/24"])<br><br>    create_database_subnet_group              = optional(bool, false)<br>    create_database_subnet_route_table        = optional(bool, true)<br>    create_elasticache_subnet_group           = optional(bool, true)<br>    create_elasticache_subnet_route_table     = optional(bool, true)<br>    enable_vpn_gateway                        = optional(bool, false)<br>    one_nat_gateway_per_az                    = optional(bool, false)<br>    single_nat_gateway                        = optional(bool, true)<br>    enable_nat_gateway                        = optional(bool, true)<br>    enable_dns_hostnames                      = optional(bool, false)<br>    enable_dns_support                        = optional(bool, true)<br>    enable_flow_log                           = optional(bool, false)<br>    create_flow_log_cloudwatch_log_group      = optional(bool, false)<br>    create_flow_log_cloudwatch_iam_role       = optional(bool, false)<br>    flow_log_max_aggregation_interval         = optional(number, 600)<br>    flow_log_cloudwatch_log_group_name_prefix = optional(string, "/aws/vpc-flow-log/")<br>    flow_log_cloudwatch_log_group_name_suffix = optional(string, "")<br>    vpc_flow_log_tags                         = optional(map(string), {})<br>  })</pre> | <pre>{<br>  "azs": [<br>    "us-east-2a",<br>    "us-east-2b",<br>    "us-east-2c"<br>  ],<br>  "cidr": "10.10.0.0/16",<br>  "create_database_subnet_group": false,<br>  "create_database_subnet_route_table": true,<br>  "create_elasticache_subnet_group": true,<br>  "create_elasticache_subnet_route_table": true,<br>  "create_flow_log_cloudwatch_iam_role": false,<br>  "create_flow_log_cloudwatch_log_group": false,<br>  "database_subnets": [<br>    "10.10.21.0/24",<br>    "10.10.22.0/24",<br>    "10.10.23.0/24"<br>  ],<br>  "elasticache_subnets": [<br>    "10.10.31.0/24",<br>    "10.10.32.0/24",<br>    "10.10.33.0/24"<br>  ],<br>  "enable_dns_hostnames": false,<br>  "enable_dns_support": true,<br>  "enable_flow_log": false,<br>  "enable_nat_gateway": true,<br>  "enable_vpn_gateway": false,<br>  "flow_log_cloudwatch_log_group_name_prefix": "/aws/vpc-flow-log/",<br>  "flow_log_cloudwatch_log_group_name_suffix": "",<br>  "flow_log_max_aggregation_interval": 600,<br>  "name": "fleet",<br>  "one_nat_gateway_per_az": false,<br>  "private_subnets": [<br>    "10.10.1.0/24",<br>    "10.10.2.0/24",<br>    "10.10.3.0/24"<br>  ],<br>  "public_subnets": [<br>    "10.10.11.0/24",<br>    "10.10.12.0/24",<br>    "10.10.13.0/24"<br>  ],<br>  "single_nat_gateway": true,<br>  "vpc_flow_log_tags": {}<br>}</pre> | no |
+| Name                                             | Description                                                                                                                           | Type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Default                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Required |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------: |
+| [alb\_config](./#input\_alb\_config)             | n/a                                                                                                                                   | <pre><code>object({
+    name                 = optional(string, "fleet")
+    security_groups      = optional(list(string), [])
+    access_logs          = optional(map(string), {})
+    allowed_cidrs        = optional(list(string), ["0.0.0.0/0"])
+    allowed_ipv6_cidrs   = optional(list(string), ["::/0"])
+    egress_cidrs         = optional(list(string), ["0.0.0.0/0"])
+    egress_ipv6_cidrs    = optional(list(string), ["::/0"])
+    extra_target_groups  = optional(any, [])
+    https_listener_rules = optional(any, [])
+    tls_policy           = optional(string, "ELBSecurityPolicy-TLS-1-2-2017-01")
+  })
+</code></pre>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | `{}`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             |    no    |
+| [certificate\_arn](./#input\_certificate\_arn)   | n/a                                                                                                                                   | `string`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | n/a                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |    yes   |
+| [ecs\_cluster](./#input\_ecs\_cluster)           | The config for the terraform-aws-modules/ecs/aws module                                                                               | <pre><code>object({
+    autoscaling_capacity_providers = optional(any, {})
+    cluster_configuration = optional(any, {
+      execute_command_configuration = {
+        logging = "OVERRIDE"
+        log_configuration = {
+          cloud_watch_log_group_name = "/aws/ecs/aws-ec2"
+        }
+      }
+    })
+    cluster_name = optional(string, "fleet")
+    cluster_settings = optional(map(string), {
+      "name" : "containerInsights",
+      "value" : "enabled",
+    })
+    create                                = optional(bool, true)
+    default_capacity_provider_use_fargate = optional(bool, true)
+    fargate_capacity_providers = optional(any, {
+      FARGATE = {
+        default_capacity_provider_strategy = {
+          weight = 100
+        }
+      }
+      FARGATE_SPOT = {
+        default_capacity_provider_strategy = {
+          weight = 0
+        }
+      }
+    })
+    tags = optional(map(string))
+  })
+</code></pre>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | <pre><code>{
+  "autoscaling_capacity_providers": {},
+  "cluster_configuration": {
+    "execute_command_configuration": {
+      "log_configuration": {
+        "cloud_watch_log_group_name": "/aws/ecs/aws-ec2"
+      },
+      "logging": "OVERRIDE"
+    }
+  },
+  "cluster_name": "fleet",
+  "cluster_settings": {
+    "name": "containerInsights",
+    "value": "enabled"
+  },
+  "create": true,
+  "default_capacity_provider_use_fargate": true,
+  "fargate_capacity_providers": {
+    "FARGATE": {
+      "default_capacity_provider_strategy": {
+        "weight": 100
+      }
+    },
+    "FARGATE_SPOT": {
+      "default_capacity_provider_strategy": {
+        "weight": 0
+      }
+    }
+  },
+  "tags": {}
+}
+</code></pre>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |    no    |
+| [fleet\_config](./#input\_fleet\_config)         | The configuration object for Fleet itself. Fields that default to null will have their respective resources created if not specified. | <pre><code>object({
+    mem                          = optional(number, 4096)
+    cpu                          = optional(number, 512)
+    image                        = optional(string, "fleetdm/fleet:v4.40.0")
+    family                       = optional(string, "fleet")
+    sidecars                     = optional(list(any), [])
+    depends_on                   = optional(list(any), [])
+    mount_points                 = optional(list(any), [])
+    volumes                      = optional(list(any), [])
+    extra_environment_variables  = optional(map(string), {})
+    extra_iam_policies           = optional(list(string), [])
+    extra_execution_iam_policies = optional(list(string), [])
+    extra_secrets                = optional(map(string), {})
+    security_groups              = optional(list(string), null)
+    security_group_name          = optional(string, "fleet")
+    iam_role_arn                 = optional(string, null)
+    service = optional(object({
+      name = optional(string, "fleet")
+      }), {
+      name = "fleet"
+    })
+    database = optional(object({
+      password_secret_arn = string
+      user                = string
+      database            = string
+      address             = string
+      rr_address          = optional(string, null)
+      }), {
+      password_secret_arn = null
+      user                = null
+      database            = null
+      address             = null
+      rr_address          = null
+    })
+    redis = optional(object({
+      address = string
+      use_tls = optional(bool, true)
+      }), {
+      address = null
+      use_tls = true
+    })
+    awslogs = optional(object({
+      name      = optional(string, null)
+      region    = optional(string, null)
+      create    = optional(bool, true)
+      prefix    = optional(string, "fleet")
+      retention = optional(number, 5)
+      }), {
+      name      = null
+      region    = null
+      prefix    = "fleet"
+      retention = 5
+    })
+    loadbalancer = optional(object({
+      arn = string
+      }), {
+      arn = null
+    })
+    extra_load_balancers = optional(list(any), [])
+    networking = optional(object({
+      subnets         = list(string)
+      security_groups = optional(list(string), null)
+      }), {
+      subnets         = null
+      security_groups = null
+    })
+    autoscaling = optional(object({
+      max_capacity                 = optional(number, 5)
+      min_capacity                 = optional(number, 1)
+      memory_tracking_target_value = optional(number, 80)
+      cpu_tracking_target_value    = optional(number, 80)
+      }), {
+      max_capacity                 = 5
+      min_capacity                 = 1
+      memory_tracking_target_value = 80
+      cpu_tracking_target_value    = 80
+    })
+    iam = optional(object({
+      role = optional(object({
+        name        = optional(string, "fleet-role")
+        policy_name = optional(string, "fleet-iam-policy")
+        }), {
+        name        = "fleet-role"
+        policy_name = "fleet-iam-policy"
+      })
+      execution = optional(object({
+        name        = optional(string, "fleet-execution-role")
+        policy_name = optional(string, "fleet-execution-role")
+        }), {
+        name        = "fleet-execution-role"
+        policy_name = "fleet-iam-policy-execution"
+      })
+      }), {
+      name = "fleetdm-execution-role"
+    })
+  })
+</code></pre> | <pre><code>{
+  "autoscaling": {
+    "cpu_tracking_target_value": 80,
+    "max_capacity": 5,
+    "memory_tracking_target_value": 80,
+    "min_capacity": 1
+  },
+  "awslogs": {
+    "create": true,
+    "name": null,
+    "prefix": "fleet",
+    "region": null,
+    "retention": 5
+  },
+  "cpu": 256,
+  "database": {
+    "address": null,
+    "database": null,
+    "password_secret_arn": null,
+    "rr_address": null,
+    "user": null
+  },
+  "depends_on": [],
+  "extra_environment_variables": {},
+  "extra_execution_iam_policies": [],
+  "extra_iam_policies": [],
+  "extra_load_balancers": [],
+  "extra_secrets": {},
+  "family": "fleet",
+  "iam": {
+    "execution": {
+      "name": "fleet-execution-role",
+      "policy_name": "fleet-iam-policy-execution"
+    },
+    "role": {
+      "name": "fleet-role",
+      "policy_name": "fleet-iam-policy"
+    }
+  },
+  "iam_role_arn": null,
+  "image": "fleetdm/fleet:v4.31.1",
+  "loadbalancer": {
+    "arn": null
+  },
+  "mem": 512,
+  "mount_points": [],
+  "networking": {
+    "security_groups": null,
+    "subnets": null
+  },
+  "redis": {
+    "address": null,
+    "use_tls": true
+  },
+  "security_group_name": "fleet",
+  "security_groups": null,
+  "service": {
+    "name": "fleet"
+  },
+  "sidecars": [],
+  "volumes": []
+}
+</code></pre> |    no    |
+| [migration\_config](./#input\_migration\_config) | The configuration object for Fleet's migration task.                                                                                  | <pre><code>object({
+    mem = number
+    cpu = number
+  })
+</code></pre>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | <pre><code>{
+  "cpu": 1024,
+  "mem": 2048
+}
+</code></pre>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |    no    |
+| [rds\_config](./#input\_rds\_config)             | The config for the terraform-aws-modules/rds-aurora/aws module                                                                        | <pre><code>object({
+    name                            = optional(string, "fleet")
+    engine_version                  = optional(string, "8.0.mysql_aurora.3.02.2")
+    instance_class                  = optional(string, "db.t4g.large")
+    subnets                         = optional(list(string), [])
+    allowed_security_groups         = optional(list(string), [])
+    allowed_cidr_blocks             = optional(list(string), [])
+    apply_immediately               = optional(bool, true)
+    monitoring_interval             = optional(number, 10)
+    db_parameter_group_name         = optional(string)
+    db_parameters                   = optional(map(string), {})
+    db_cluster_parameter_group_name = optional(string)
+    db_cluster_parameters           = optional(map(string), {})
+    enabled_cloudwatch_logs_exports = optional(list(string), [])
+    master_username                 = optional(string, "fleet")
+    snapshot_identifier             = optional(string)
+    cluster_tags                    = optional(map(string), {})
+  })
+</code></pre>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | <pre><code>{
+  "allowed_cidr_blocks": [],
+  "allowed_security_groups": [],
+  "apply_immediately": true,
+  "cluster_tags": {},
+  "db_cluster_parameter_group_name": null,
+  "db_cluster_parameters": {},
+  "db_parameter_group_name": null,
+  "db_parameters": {},
+  "enabled_cloudwatch_logs_exports": [],
+  "engine_version": "8.0.mysql_aurora.3.02.2",
+  "instance_class": "db.t4g.large",
+  "master_username": "fleet",
+  "monitoring_interval": 10,
+  "name": "fleet",
+  "snapshot_identifier": null,
+  "subnets": []
+}
+</code></pre>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |    no    |
+| [redis\_config](./#input\_redis\_config)         | n/a                                                                                                                                   | <pre><code>object({
+    name                          = optional(string, "fleet")
+    replication_group_id          = optional(string)
+    elasticache_subnet_group_name = optional(string)
+    allowed_security_group_ids    = optional(list(string), [])
+    subnets                       = optional(list(string))
+    availability_zones            = optional(list(string))
+    cluster_size                  = optional(number, 3)
+    instance_type                 = optional(string, "cache.m5.large")
+    apply_immediately             = optional(bool, true)
+    automatic_failover_enabled    = optional(bool, false)
+    engine_version                = optional(string, "6.x")
+    family                        = optional(string, "redis6.x")
+    at_rest_encryption_enabled    = optional(bool, true)
+    transit_encryption_enabled    = optional(bool, true)
+    parameter = optional(list(object({
+      name  = string
+      value = string
+    })), [])
+    log_delivery_configuration = optional(list(map(any)), [])
+    tags                       = optional(map(string), {})
+  })
+</code></pre>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | <pre><code>{
+  "allowed_security_group_ids": [],
+  "apply_immediately": true,
+  "at_rest_encryption_enabled": true,
+  "automatic_failover_enabled": false,
+  "availability_zones": null,
+  "cluster_size": 3,
+  "elasticache_subnet_group_name": null,
+  "engine_version": "6.x",
+  "family": "redis6.x",
+  "instance_type": "cache.m5.large",
+  "log_delivery_configuration": [],
+  "name": "fleet",
+  "parameter": [],
+  "replication_group_id": null,
+  "subnets": null,
+  "tags": {},
+  "transit_encryption_enabled": true
+}
+</code></pre>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |    no    |
+| [vpc](./#input\_vpc)                             | n/a                                                                                                                                   | <pre><code>object({
+    name                = optional(string, "fleet")
+    cidr                = optional(string, "10.10.0.0/16")
+    azs                 = optional(list(string), ["us-east-2a", "us-east-2b", "us-east-2c"])
+    private_subnets     = optional(list(string), ["10.10.1.0/24", "10.10.2.0/24", "10.10.3.0/24"])
+    public_subnets      = optional(list(string), ["10.10.11.0/24", "10.10.12.0/24", "10.10.13.0/24"])
+    database_subnets    = optional(list(string), ["10.10.21.0/24", "10.10.22.0/24", "10.10.23.0/24"])
+    elasticache_subnets = optional(list(string), ["10.10.31.0/24", "10.10.32.0/24", "10.10.33.0/24"])
 
-## Outputs
+    create_database_subnet_group              = optional(bool, false)
+    create_database_subnet_route_table        = optional(bool, true)
+    create_elasticache_subnet_group           = optional(bool, true)
+    create_elasticache_subnet_route_table     = optional(bool, true)
+    enable_vpn_gateway                        = optional(bool, false)
+    one_nat_gateway_per_az                    = optional(bool, false)
+    single_nat_gateway                        = optional(bool, true)
+    enable_nat_gateway                        = optional(bool, true)
+    enable_dns_hostnames                      = optional(bool, false)
+    enable_dns_support                        = optional(bool, true)
+    enable_flow_log                           = optional(bool, false)
+    create_flow_log_cloudwatch_log_group      = optional(bool, false)
+    create_flow_log_cloudwatch_iam_role       = optional(bool, false)
+    flow_log_max_aggregation_interval         = optional(number, 600)
+    flow_log_cloudwatch_log_group_name_prefix = optional(string, "/aws/vpc-flow-log/")
+    flow_log_cloudwatch_log_group_name_suffix = optional(string, "")
+    vpc_flow_log_tags                         = optional(map(string), {})
+  })
+</code></pre>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | <pre><code>{
+  "azs": [
+    "us-east-2a",
+    "us-east-2b",
+    "us-east-2c"
+  ],
+  "cidr": "10.10.0.0/16",
+  "create_database_subnet_group": false,
+  "create_database_subnet_route_table": true,
+  "create_elasticache_subnet_group": true,
+  "create_elasticache_subnet_route_table": true,
+  "create_flow_log_cloudwatch_iam_role": false,
+  "create_flow_log_cloudwatch_log_group": false,
+  "database_subnets": [
+    "10.10.21.0/24",
+    "10.10.22.0/24",
+    "10.10.23.0/24"
+  ],
+  "elasticache_subnets": [
+    "10.10.31.0/24",
+    "10.10.32.0/24",
+    "10.10.33.0/24"
+  ],
+  "enable_dns_hostnames": false,
+  "enable_dns_support": true,
+  "enable_flow_log": false,
+  "enable_nat_gateway": true,
+  "enable_vpn_gateway": false,
+  "flow_log_cloudwatch_log_group_name_prefix": "/aws/vpc-flow-log/",
+  "flow_log_cloudwatch_log_group_name_suffix": "",
+  "flow_log_max_aggregation_interval": 600,
+  "name": "fleet",
+  "one_nat_gateway_per_az": false,
+  "private_subnets": [
+    "10.10.1.0/24",
+    "10.10.2.0/24",
+    "10.10.3.0/24"
+  ],
+  "public_subnets": [
+    "10.10.11.0/24",
+    "10.10.12.0/24",
+    "10.10.13.0/24"
+  ],
+  "single_nat_gateway": true,
+  "vpc_flow_log_tags": {}
+}
+</code></pre>                                                                               |    no    |
 
-| Name | Description |
-|------|-------------|
-| <a name="output_byo-vpc"></a> [byo-vpc](#output\_byo-vpc) | n/a |
-| <a name="output_vpc"></a> [vpc](#output\_vpc) | n/a |
+### Outputs
+
+| Name                          | Description |
+| ----------------------------- | ----------- |
+| [byo-vpc](./#output\_byo-vpc) | n/a         |
+| [vpc](./#output\_vpc)         | n/a         |

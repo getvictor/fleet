@@ -10,16 +10,16 @@ This code sets up a secure and controlled environment for the Fleet application 
 
 ## Requirements
 
-| Name | Version |
-|------|---------|
-| <a name="requirement_terraform"></a> [terraform](#requirement\_terraform) | >= 1.3.7 |
-| <a name="requirement_aws"></a> [aws](#requirement\_aws) | >= 5.29.0 |
+| Name                                   | Version   |
+| -------------------------------------- | --------- |
+| [terraform](./#requirement\_terraform) | >= 1.3.7  |
+| [aws](./#requirement\_aws)             | >= 5.29.0 |
 
 ## Providers
 
-| Name | Version |
-|------|---------|
-| <a name="provider_aws"></a> [aws](#provider\_aws) | >= 5.29.0 |
+| Name                    | Version   |
+| ----------------------- | --------- |
+| [aws](./#provider\_aws) | >= 5.29.0 |
 
 ## Modules
 
@@ -27,41 +27,75 @@ No modules.
 
 ## Resources
 
-| Name | Type |
-|------|------|
-| [aws_iam_policy.firehose](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_policy) | resource |
-| [aws_iam_policy.fleet_firehose](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_policy) | resource |
-| [aws_iam_role.firehose](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
-| [aws_iam_role.fleet_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role) | resource |
-| [aws_iam_role_policy_attachment.firehose](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
-| [aws_iam_role_policy_attachment.fleet_firehose](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy_attachment) | resource |
-| [aws_kinesis_firehose_delivery_stream.fleet_log_destinations](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/kinesis_firehose_delivery_stream) | resource |
-| [aws_kms_key.firehose_key](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/kms_key) | resource |
-| [aws_s3_bucket.destination](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket) | resource |
-| [aws_s3_bucket_public_access_block.destination](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_public_access_block) | resource |
-| [aws_s3_bucket_server_side_encryption_configuration.destination](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3_bucket_server_side_encryption_configuration) | resource |
-| [aws_caller_identity.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller_identity) | data source |
-| [aws_iam_policy_document.assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
-| [aws_iam_policy_document.firehose](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
-| [aws_iam_policy_document.firehose_policy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
-| [aws_iam_policy_document.osquery_firehose_assume_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam_policy_document) | data source |
-| [aws_kms_alias.s3](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/kms_alias) | data source |
-| [aws_region.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/region) | data source |
+| Name                                                                                                                                                                                                    | Type        |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- |
+| [aws\_iam\_policy.firehose](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam\_policy)                                                                                    | resource    |
+| [aws\_iam\_policy.fleet\_firehose](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam\_policy)                                                                             | resource    |
+| [aws\_iam\_role.firehose](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam\_role)                                                                                        | resource    |
+| [aws\_iam\_role.fleet\_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam\_role)                                                                                     | resource    |
+| [aws\_iam\_role\_policy\_attachment.firehose](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam\_role\_policy\_attachment)                                                | resource    |
+| [aws\_iam\_role\_policy\_attachment.fleet\_firehose](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam\_role\_policy\_attachment)                                         | resource    |
+| [aws\_kinesis\_firehose\_delivery\_stream.fleet\_log\_destinations](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/kinesis\_firehose\_delivery\_stream)                    | resource    |
+| [aws\_kms\_key.firehose\_key](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/kms\_key)                                                                                     | resource    |
+| [aws\_s3\_bucket.destination](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3\_bucket)                                                                                   | resource    |
+| [aws\_s3\_bucket\_public\_access\_block.destination](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3\_bucket\_public\_access\_block)                                     | resource    |
+| [aws\_s3\_bucket\_server\_side\_encryption\_configuration.destination](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/s3\_bucket\_server\_side\_encryption\_configuration) | resource    |
+| [aws\_caller\_identity.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/caller\_identity)                                                                        | data source |
+| [aws\_iam\_policy\_document.assume\_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam\_policy\_document)                                                         | data source |
+| [aws\_iam\_policy\_document.firehose](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam\_policy\_document)                                                             | data source |
+| [aws\_iam\_policy\_document.firehose\_policy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam\_policy\_document)                                                     | data source |
+| [aws\_iam\_policy\_document.osquery\_firehose\_assume\_role](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/iam\_policy\_document)                                      | data source |
+| [aws\_kms\_alias.s3](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/kms\_alias)                                                                                         | data source |
+| [aws\_region.current](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/data-sources/region)                                                                                            | data source |
 
 ## Inputs
 
-| Name | Description | Type | Default | Required |
-|------|-------------|------|---------|:--------:|
-| <a name="input_fleet_iam_role_arn"></a> [fleet\_iam\_role\_arn](#input\_fleet\_iam\_role\_arn) | the arn of the fleet role that firehose will assume to write data to your bucket | `string` | n/a | yes |
-| <a name="input_kms_key_arn"></a> [kms\_key\_arn](#input\_kms\_key\_arn) | An optional KMS key ARN for server-side encryption. If not provided and encryption is enabled, a new key will be created. | `string` | `""` | no |
-| <a name="input_log_destinations"></a> [log\_destinations](#input\_log\_destinations) | A map of configurations for Firehose delivery streams. | <pre>map(object({<br>    name                  = string<br>    prefix                = string<br>    error_output_prefix   = string<br>    buffering_size        = number<br>    buffering_interval    = number<br>    compression_format    = string<br>  }))</pre> | <pre>{<br>  "audit": {<br>    "buffering_interval": 120,<br>    "buffering_size": 20,<br>    "compression_format": "UNCOMPRESSED",<br>    "error_output_prefix": "audit/error/error=!{firehose:error-output-type}/year=!{timestamp:yyyy}/month=!{timestamp:MM}/day=!{timestamp:dd}/",<br>    "name": "fleet_audit",<br>    "prefix": "audit/year=!{timestamp:yyyy}/month=!{timestamp:MM}/day=!{timestamp:dd}/"<br>  },<br>  "results": {<br>    "buffering_interval": 120,<br>    "buffering_size": 20,<br>    "compression_format": "UNCOMPRESSED",<br>    "error_output_prefix": "results/error/error=!{firehose:error-output-type}/year=!{timestamp:yyyy}/month=!{timestamp:MM}/day=!{timestamp:dd}/",<br>    "name": "osquery_results",<br>    "prefix": "results/year=!{timestamp:yyyy}/month=!{timestamp:MM}/day=!{timestamp:dd}/"<br>  },<br>  "status": {<br>    "buffering_interval": 120,<br>    "buffering_size": 20,<br>    "compression_format": "UNCOMPRESSED",<br>    "error_output_prefix": "status/error/error=!{firehose:error-output-type}/year=!{timestamp:yyyy}/month=!{timestamp:MM}/day=!{timestamp:dd}/",<br>    "name": "osquery_status",<br>    "prefix": "status/year=!{timestamp:yyyy}/month=!{timestamp:MM}/day=!{timestamp:dd}/"<br>  }<br>}</pre> | no |
-| <a name="input_osquery_logging_destination_bucket_name"></a> [osquery\_logging\_destination\_bucket\_name](#input\_osquery\_logging\_destination\_bucket\_name) | name of the bucket to store osquery results & status logs | `string` | n/a | yes |
-| <a name="input_server_side_encryption_enabled"></a> [server\_side\_encryption\_enabled](#input\_server\_side\_encryption\_enabled) | A boolean flag to enable/disable server-side encryption. Defaults to true (enabled). | `bool` | `true` | no |
+| Name                                                                                                 | Description                                                                                                               | Type                                                                                                                                                                                                                                                          | Default                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Required |
+| ---------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | :------: |
+| [fleet\_iam\_role\_arn](./#input\_fleet\_iam\_role\_arn)                                             | the arn of the fleet role that firehose will assume to write data to your bucket                                          | `string`                                                                                                                                                                                                                                                      | n/a                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |    yes   |
+| [kms\_key\_arn](./#input\_kms\_key\_arn)                                                             | An optional KMS key ARN for server-side encryption. If not provided and encryption is enabled, a new key will be created. | `string`                                                                                                                                                                                                                                                      | `""`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |    no    |
+| [log\_destinations](./#input\_log\_destinations)                                                     | A map of configurations for Firehose delivery streams.                                                                    | <pre><code>map(object({
+    name                  = string
+    prefix                = string
+    error_output_prefix   = string
+    buffering_size        = number
+    buffering_interval    = number
+    compression_format    = string
+  }))
+</code></pre> | <pre><code>{
+  "audit": {
+    "buffering_interval": 120,
+    "buffering_size": 20,
+    "compression_format": "UNCOMPRESSED",
+    "error_output_prefix": "audit/error/error=!{firehose:error-output-type}/year=!{timestamp:yyyy}/month=!{timestamp:MM}/day=!{timestamp:dd}/",
+    "name": "fleet_audit",
+    "prefix": "audit/year=!{timestamp:yyyy}/month=!{timestamp:MM}/day=!{timestamp:dd}/"
+  },
+  "results": {
+    "buffering_interval": 120,
+    "buffering_size": 20,
+    "compression_format": "UNCOMPRESSED",
+    "error_output_prefix": "results/error/error=!{firehose:error-output-type}/year=!{timestamp:yyyy}/month=!{timestamp:MM}/day=!{timestamp:dd}/",
+    "name": "osquery_results",
+    "prefix": "results/year=!{timestamp:yyyy}/month=!{timestamp:MM}/day=!{timestamp:dd}/"
+  },
+  "status": {
+    "buffering_interval": 120,
+    "buffering_size": 20,
+    "compression_format": "UNCOMPRESSED",
+    "error_output_prefix": "status/error/error=!{firehose:error-output-type}/year=!{timestamp:yyyy}/month=!{timestamp:MM}/day=!{timestamp:dd}/",
+    "name": "osquery_status",
+    "prefix": "status/year=!{timestamp:yyyy}/month=!{timestamp:MM}/day=!{timestamp:dd}/"
+  }
+}
+</code></pre> |    no    |
+| [osquery\_logging\_destination\_bucket\_name](./#input\_osquery\_logging\_destination\_bucket\_name) | name of the bucket to store osquery results & status logs                                                                 | `string`                                                                                                                                                                                                                                                      | n/a                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |    yes   |
+| [server\_side\_encryption\_enabled](./#input\_server\_side\_encryption\_enabled)                     | A boolean flag to enable/disable server-side encryption. Defaults to true (enabled).                                      | `bool`                                                                                                                                                                                                                                                        | `true`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |    no    |
 
 ## Outputs
 
-| Name | Description |
-|------|-------------|
-| <a name="output_firehose_iam_role"></a> [firehose\_iam\_role](#output\_firehose\_iam\_role) | n/a |
-| <a name="output_log_destinations"></a> [log\_destinations](#output\_log\_destinations) | Map of Firehose delivery streams' names. |
-| <a name="output_s3_destination"></a> [s3\_destination](#output\_s3\_destination) | n/a |
+| Name                                                  | Description                              |
+| ----------------------------------------------------- | ---------------------------------------- |
+| [firehose\_iam\_role](./#output\_firehose\_iam\_role) | n/a                                      |
+| [log\_destinations](./#output\_log\_destinations)     | Map of Firehose delivery streams' names. |
+| [s3\_destination](./#output\_s3\_destination)         | n/a                                      |

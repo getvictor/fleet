@@ -1,0 +1,2 @@
+# byo-firehose-logging-destination
+

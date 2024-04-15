@@ -12,8 +12,8 @@ Note that because the name string is used pervasively in URL API paths you proba
 
 The `depserver` serves two main purposes:
 
-1. Setup & configuration of the DEP name(s) — that is, the locally-named instances that correspond to the DEP "MDM servers" in the Apple Business Manager (ABM), Apple School Manager (ASM), or Business Essentials (BE) portal. Configuration includes uploading the DEP authentication tokens, configuring the assigner, etc. See the "API endpoints" section below for more.
-1. Accessing the actual DEP APIs using a transparently-authenticating reverse proxy. After you've configured the authentication tokens using the above APIs `depserver` provides a reverse proxy to talk to the Apple DEP endpoints where you don't have to worry about session management or token authentication: this's taken care of for you. All you need to do is use a special URL path and normal API (HTTP Basic) authentication and you can talk to the DEP APIs unfiltered. See the "Reverse proxy" section below for more.
+1. Setup & configuration of the DEP name(s) — that is, the locally-named instances that correspond to the DEP "MDM servers" in the Apple Business Manager (ABM), Apple School Manager (ASM), or Business Essentials (BE) portal. Configuration includes uploading the DEP authentication tokens, configuring the assigner, etc. See the "API endpoints" section below for more.
+2. Accessing the actual DEP APIs using a transparently-authenticating reverse proxy. After you've configured the authentication tokens using the above APIs `depserver` provides a reverse proxy to talk to the Apple DEP endpoints where you don't have to worry about session management or token authentication: this's taken care of for you. All you need to do is use a special URL path and normal API (HTTP Basic) authentication and you can talk to the DEP APIs unfiltered. See the "Reverse proxy" section below for more.
 
 ### Switches
 
@@ -41,22 +41,21 @@ Specifies the listen address (interface and port number) for the server to liste
 
 The `-storage` and `-storage-dsn` flags together configure the storage backend. `-storage` specifies the name of backend type while `-storage-dsn` specifies the backend data source name (e.g. the connection string). If no `-storage` backend is specified then `file` is used as a default.
 
-##### file storage backend
+**file storage backend**
 
 * `-storage file`
 
 Configure the `file` storage backend. This backend manages DEP authentication and configuration data within plain filesystem files and directories. It has zero dependencies and should run out of the box. The `-storage-dsn` flag specifies the filesystem directory for the database. If no `storage-dsn` is specified then `db` is used as a default.
 
-*Example:* `-storage file -storage-dsn /path/to/my/db`
+_Example:_ `-storage file -storage-dsn /path/to/my/db`
 
-##### mysql storage backend
+**mysql storage backend**
 
 * `-storage mysql`
 
-Configures the MySQL storage backend. The `-dsn` flag should be in the [format the SQL driver expects](https://github.com/go-sql-driver/mysql#dsn-data-source-name).
-Be sure to create the storage tables with the [schema.sql](../storage/mysql/schema.sql) file. MySQL 8.0.19 or later is required.
+Configures the MySQL storage backend. The `-dsn` flag should be in the [format the SQL driver expects](https://github.com/go-sql-driver/mysql#dsn-data-source-name). Be sure to create the storage tables with the [schema.sql](../storage/mysql/schema.sql) file. MySQL 8.0.19 or later is required.
 
-*Example:* `-storage mysql -dsn nanodep:nanodep/mydepdb`
+_Example:_ `-storage mysql -dsn nanodep:nanodep/mydepdb`
 
 #### -version
 
@@ -66,7 +65,7 @@ Print version and exit.
 
 ### API endpoints
 
-API endpoints for getting and setting the configuration of DEP names. Note that you don't need to use these APIs directly — NanoDEP provides a set of tools and scripts for working with some of these endpoints — see the "Tools and scripts" section, below. Most of the endpoints require specifying the "DEP name" (see above) in the `{name}` part of the URL (without the curly braces, of course).
+API endpoints for getting and setting the configuration of DEP names. Note that you don't need to use these APIs directly — NanoDEP provides a set of tools and scripts for working with some of these endpoints — see the "Tools and scripts" section, below. Most of the endpoints require specifying the "DEP name" (see above) in the `{name}` part of the URL (without the curly braces, of course).
 
 A brief overview of the endpoints is provided here. For detailed API semantics please see the [OpenAPI documentation for NanoDEP](https://www.jessepeterson.space/swagger/nanodep.html). The OpenAPI source YAML is a part of this project.
 
@@ -86,7 +85,7 @@ The `/v1/tokenpki/{name}` endpoints deal with the public key exchange using the 
 
 * Endpoint: `GET, PUT /v1/tokens/{name}`
 
-The `/v1/tokens/{name} ` endpoints deal with the raw DEP OAuth tokens in JSON form. I.e. after the PKI exchange you can query for the actual DEP OAuth tokens if you like. This also allows configuring the OAuth1 tokens for a DEP name if you already have the tokens in JSON format. I.e. if you used the `deptokens` tool or you're using the DEP simulator `depsim`.
+The `/v1/tokens/{name}` endpoints deal with the raw DEP OAuth tokens in JSON form. I.e. after the PKI exchange you can query for the actual DEP OAuth tokens if you like. This also allows configuring the OAuth1 tokens for a DEP name if you already have the tokens in JSON format. I.e. if you used the `deptokens` tool or you're using the DEP simulator `depsim`.
 
 #### Assigner
 
@@ -104,13 +103,13 @@ The `/v1/config/{name}` endpoints deal with storing and retrieving configuration
 
 In addition to individually handling some of various Apple DEP API endpoints in its `godep` library NanoDEP provides a transparently-authenticating HTTP reverse proxy to the Apple DEP servers. This allows us to simply provide `depserver` with the Apple DEP endpoint, the NanoDEP "DEP name" and the API key, and we can talk to any of the Apple DEP endpoint APIs (including the Roster, Class, and People Management). `depserver` will authenticate to the Apple DEP server and keep track of session management transparently behind the scenes. To be clear: this means you do not have to call to the `/session` endpoint to authenticate nor to manage and update the session tokens with each request. NanoDEP does this for you.
 
-The proxy URL is accessible as: `/proxy/{name}/endpoint` where `/endpoint` is the Apple DEP API endpoint you want to access. The proxy will automatically translate this URL to ``https://mdmenrollment.apple.com/endpoint` and use `{name}` for retrieving the DEP authentication tokens. Note that in some cases, for some endpoints, various HTTP headers are added or removed:
+The proxy URL is accessible as: `/proxy/{name}/endpoint` where `/endpoint` is the Apple DEP API endpoint you want to access. The proxy will automatically translate this URL to \`\`https://mdmenrollment.apple.com/endpoint`and use`{name}\` for retrieving the DEP authentication tokens. Note that in some cases, for some endpoints, various HTTP headers are added or removed:
 
 * For any proxy request the API authentication header is removed before passing to the underlying DEP server.
 * If not provided in the incoming HTTP request the DEP header `X-Server-Protocol-Version` is set to a default (currently "3").
 * For the `/session` endpoint we use a default `Content-Type`. However because NanoDEP handles authentication for you, you shouldn't have to worry about this (or even need to call to the `/session` endpoint).
 
-Note that for simple cases you don't need to use this proxy directly — NanoDEP provides a set of tools and scripts for working with some of the DEP endpoints — see the "Tools and scripts" section, below.
+Note that for simple cases you don't need to use this proxy directly — NanoDEP provides a set of tools and scripts for working with some of the DEP endpoints — see the "Tools and scripts" section, below.
 
 #### Example usage
 
@@ -161,7 +160,7 @@ Generally, the scripts are split into two types indicated by the script prefix:
 
 ### Scripts
 
-These scripts require setting up a few environment variables before use. Please see the [tools](../tools) for more documentation. But generally you'll need to set these environment variables for the scripts to work:
+These scripts require setting up a few environment variables before use. Please see the [tools](../tools/) for more documentation. But generally you'll need to set these environment variables for the scripts to work:
 
 ```bash
 # the URL of the running depserver
@@ -176,9 +175,9 @@ The [Quickstart Guide](quickstart.md) also documents some usage of these scripts
 
 #### cfg-get-cert.sh
 
-For the DEP "MDM server" in the environment variable $DEP_NAME (see above) this script generates and retrieves the public key certificate for use when downloading the DEP authentication tokens from the ABM/ASM/BE portal. The `curl` call will dump the PEM-encoded certificate to stdout so you'll likely want to redirect it somewhere useful so it can be uploaded to the portal.
+For the DEP "MDM server" in the environment variable $DEP\_NAME (see above) this script generates and retrieves the public key certificate for use when downloading the DEP authentication tokens from the ABM/ASM/BE portal. The `curl` call will dump the PEM-encoded certificate to stdout so you'll likely want to redirect it somewhere useful so it can be uploaded to the portal.
 
-##### Example usage
+**Example usage**
 
 ```bash
 $ ./tools/cfg-get-cert.sh > $DEP_NAME.pem
@@ -192,11 +191,11 @@ MIICtTCCAZ2gAwIBAgIBATANBgkqhkiG9w0BAQsFADAUMRIwEAYDVQQDEwlkZXBz
 
 #### cfg-decrypt-tokens.sh
 
-For the DEP "MDM server" in the environment variable $DEP_NAME (see above) this script uploads the encrypted tokens that were downloaded from the ABM/ASM/BE portal to `depserver` where it is decrypted and the resulting OAuth tokens stored with the MDM instance.
+For the DEP "MDM server" in the environment variable $DEP\_NAME (see above) this script uploads the encrypted tokens that were downloaded from the ABM/ASM/BE portal to `depserver` where it is decrypted and the resulting OAuth tokens stored with the MDM instance.
 
 **The first argument is required** and specifies the path to the token file downloaded from the Apple portal.
 
-##### Example usage
+**Example usage**
 
 ```bash
 $ ./cfg-decrypt-tokens.sh ~/Downloads/mdmserver1_Token_2022-07-01T22-18-53Z_smime.p7m
@@ -205,9 +204,9 @@ $ ./cfg-decrypt-tokens.sh ~/Downloads/mdmserver1_Token_2022-07-01T22-18-53Z_smim
 
 #### dep-account-detail.sh
 
-For the DEP "MDM server" in the environment variable $DEP_NAME (see above) this script queries the DEP API [Get Account Detail](https://developer.apple.com/documentation/devicemanagement/get_account_detail) endpoint and returns the data.
+For the DEP "MDM server" in the environment variable $DEP\_NAME (see above) this script queries the DEP API [Get Account Detail](https://developer.apple.com/documentation/devicemanagement/get\_account\_detail) endpoint and returns the data.
 
-##### Example usage
+**Example usage**
 
 ```bash
 $ ./dep-account-detail.sh
@@ -225,14 +224,14 @@ $ ./dep-account-detail.sh
 
 #### dep-define-profile.sh
 
-For the DEP "MDM server" in the environment variable $DEP_NAME (see above) this script uploads a [DEP profile](https://developer.apple.com/documentation/devicemanagement/profile) in JSON form to the Apple DEP API [Define A Profile](https://developer.apple.com/documentation/devicemanagement/define_a_profile) endpoint. Some important notes:
+For the DEP "MDM server" in the environment variable $DEP\_NAME (see above) this script uploads a [DEP profile](https://developer.apple.com/documentation/devicemanagement/profile) in JSON form to the Apple DEP API [Define A Profile](https://developer.apple.com/documentation/devicemanagement/define\_a\_profile) endpoint. Some important notes:
 
-* **The first argument is required** and specifies the path to a DEP profile JSON file. We provide a sample DEP profile in the [docs](../docs) of the NanoMDM project to get you started.
-* *You will need to (possibly heavily) modify this example* including MDM server URL, adding or removing optional parameters, devices serial numbers to assign to, etc. See the Apple [DEP profile](https://developer.apple.com/documentation/devicemanagement/profile) documentation and test extensively. Note some properties in the profile are mutually exclusive and the DEP service doesn't always given good feedback. Trial and error is sometimes need to get your first DEP profile uploaded successfully.
-* You can directly include `devices` key in the JSON here to assign this profile *during this operation* to those devices. This means you can skip a separate device assign step which would be required.
+* **The first argument is required** and specifies the path to a DEP profile JSON file. We provide a sample DEP profile in the [docs](./) of the NanoMDM project to get you started.
+* _You will need to (possibly heavily) modify this example_ including MDM server URL, adding or removing optional parameters, devices serial numbers to assign to, etc. See the Apple [DEP profile](https://developer.apple.com/documentation/devicemanagement/profile) documentation and test extensively. Note some properties in the profile are mutually exclusive and the DEP service doesn't always given good feedback. Trial and error is sometimes need to get your first DEP profile uploaded successfully.
+* You can directly include `devices` key in the JSON here to assign this profile _during this operation_ to those devices. This means you can skip a separate device assign step which would be required.
 * Once uploaded to Apple the profile will have a UUID associated with it. This identifies this exact uploaded profile to Apple for future reference. You may want to note this profile UUID if, for example, you want to use it to automatically assign devices with the `depsyncer` tool.
 
-##### Example usage
+**Example usage**
 
 ```bash
 $ ./dep-define-profile.sh ../docs/dep-profile.example.json
@@ -246,13 +245,13 @@ $ ./dep-define-profile.sh ../docs/dep-profile.example.json
 
 #### dep-device-details.sh
 
-For the DEP "MDM server" in the environment variable $DEP_NAME (see above) this script queries the Apple DEP API [Get Device Details](https://developer.apple.com/documentation/devicemanagement/get_device_details) endpoint for a given serial number.
+For the DEP "MDM server" in the environment variable $DEP\_NAME (see above) this script queries the Apple DEP API [Get Device Details](https://developer.apple.com/documentation/devicemanagement/get\_device\_details) endpoint for a given serial number.
 
 **The first argument is required** and specifies the serial number of the device you want to query.
 
 Note that the API itself supports querying multiple devices at a time if you're able to assemble the appropriate JSON. This script only supports one serial number, however.
 
-##### Example usage
+**Example usage**
 
 ```bash
 $ ./dep-device-details.sh 07AAD449616F566C12
@@ -266,11 +265,11 @@ $ ./dep-device-details.sh 07AAD449616F566C12
 
 #### dep-get-profile.sh
 
-For the DEP "MDM server" in the environment variable $DEP_NAME (see above) this script queries the Apple DEP API [Get a Profile](https://developer.apple.com/documentation/devicemanagement/get_a_profile) endpoint for a given DEP Profile UUID.
+For the DEP "MDM server" in the environment variable $DEP\_NAME (see above) this script queries the Apple DEP API [Get a Profile](https://developer.apple.com/documentation/devicemanagement/get\_a\_profile) endpoint for a given DEP Profile UUID.
 
 **The first argument is required** and specifies the UUID of the profile that was previously defined via the API.
 
-#####
+
 
 ```bash
 $ ./dep-get-profile.sh 43277A13FBCA0CFC
@@ -281,11 +280,11 @@ $ ./dep-get-profile.sh 43277A13FBCA0CFC
 
 #### cfg-set-assigner.sh
 
-For the DEP "MDM server" in the environment variable $DEP_NAME (see above) this script saves the 'assigner' profile UUID in the `depserver` storage backend. This is the profile UUID that the automatic DEP profile assigner in the `depsyncer` tool uses to assign serial numbers to as it syncs new devices. By itself this command doesn't actually assign profiles to anything — it only *configures* the assigner profile UUID. The endpoint responds with the profile UUID in JSON. See the `depsyncer` tool documentation for more information.
+For the DEP "MDM server" in the environment variable $DEP\_NAME (see above) this script saves the 'assigner' profile UUID in the `depserver` storage backend. This is the profile UUID that the automatic DEP profile assigner in the `depsyncer` tool uses to assign serial numbers to as it syncs new devices. By itself this command doesn't actually assign profiles to anything — it only _configures_ the assigner profile UUID. The endpoint responds with the profile UUID in JSON. See the `depsyncer` tool documentation for more information.
 
 **The first argument is required** and specifies the UUID of the profile that `depsyncer` will use to automatically assign serial numbers to.
 
-##### Example usage
+**Example usage**
 
 ```bash
 $ ./cfg-set-assigner.sh 43277A13FBCA0CFC
@@ -294,13 +293,13 @@ $ ./cfg-set-assigner.sh 43277A13FBCA0CFC
 
 #### dep-remove-profile.sh
 
-For the DEP "MDM server" in the environment variable $DEP_NAME (see above) this script calls to the Apple DEP API [Remove a Profile](https://developer.apple.com/documentation/devicemanagement/remove_a_profile-c2c) endpoint to remove a serial number from being assigned to a DEP profile UUID. Note this is **NOT** the [disown](https://developer.apple.com/documentation/devicemanagement/disown_devices) endpoint and profiles can be re-assigned at any time after using this script.
+For the DEP "MDM server" in the environment variable $DEP\_NAME (see above) this script calls to the Apple DEP API [Remove a Profile](https://developer.apple.com/documentation/devicemanagement/remove\_a\_profile-c2c) endpoint to remove a serial number from being assigned to a DEP profile UUID. Note this is **NOT** the [disown](https://developer.apple.com/documentation/devicemanagement/disown\_devices) endpoint and profiles can be re-assigned at any time after using this script.
 
 **The first argument is required** and specifies the serial number of the device to remove DEP profile assignment from.
 
 Note that the API itself supports un-assigning multiple devices at a time if you're able to assemble the appropriate JSON. This script only supports one serial number, however.
 
-##### Example usage
+**Example usage**
 
 ```bash
 $ ./dep-remove-profile.sh 07AAD449616F566C12
@@ -410,18 +409,18 @@ Print version and exit.
 
 For each synced set of devices `depsyncer` supports sending the sync result to a webhook URL. This switch turns on the webhook and specifies the URL. This is somewhat compatible with the webhook support in NanoMDM as well as the [MicroMDM webhook](https://github.com/micromdm/micromdm/blob/main/docs/user-guide/api-and-webhooks.md).
 
-##### Webhook data
+**Webhook data**
 
 The data is sent as an HTTP POST method with JSON data as the raw body. The JSON structure is similar to other open source webhook styles with a few differences:
 
 * The top-level "topic" key will be a string of either `dep.SyncDevices` or `dep.FetchDevices` depending on the type of DEP API request used.
-* The top-level "device_response_event" object will contain specific detail about this sync.
-  * The key "dep_name" corresponds to the NanoDEP DEP name from which devices were synced.
-  * The key "device_response" will be an object that corresponds to the Apple DEP API [FetchDeviceResponse](https://developer.apple.com/documentation/devicemanagement/fetchdeviceresponse) structure and includes the list of [Device](https://developer.apple.com/documentation/devicemanagement/device)(s) that were synced, if any.
+* The top-level "device\_response\_event" object will contain specific detail about this sync.
+  * The key "dep\_name" corresponds to the NanoDEP DEP name from which devices were synced.
+  * The key "device\_response" will be an object that corresponds to the Apple DEP API [FetchDeviceResponse](https://developer.apple.com/documentation/devicemanagement/fetchdeviceresponse) structure and includes the list of [Device](https://developer.apple.com/documentation/devicemanagement/device)(s) that were synced, if any.
 
-With this information you could, for example, take device-specific actions by calling back into the `depserver` DEP APIs. For example to assign different DEP profiles depending on groups of serial numbers that you maintain or *not* assigning some serial numbers. It's all up to you with the DEP sync data provided.
+With this information you could, for example, take device-specific actions by calling back into the `depserver` DEP APIs. For example to assign different DEP profiles depending on groups of serial numbers that you maintain or _not_ assigning some serial numbers. It's all up to you with the DEP sync data provided.
 
-##### Example data
+**Example data**
 
 Example JSON webhook body data:
 
@@ -489,11 +488,11 @@ $ ./depsyncer-darwin-amd64 -debug -duration 0 depsim
 
 The `depsyncer` tool has two debug switches: one for general debug logging (`-debug`) and another debug logging specifically for the assigner (`-debug-assigner`). Turning these options on may give extra detail into the which devices the syncer is seeing and which it is considering for assignment.
 
-If you're moving devices from an existing MDM server in ABM/ASM/BE to your NanoDEP server then you may encounter a situation where, after moving the device over, you have `op_type_modified=X` but *not* `op_type_added=Y` device log lines (the former are required fot the assigner to work). This appears to be an oddity with the ABM/ASM/BE portal that [the MicroMDM project has documented](https://github.com/micromdm/micromdm/wiki/DEP-auto-assignment#reassignment-oddities) with a (kludgy) workaround.
+If you're moving devices from an existing MDM server in ABM/ASM/BE to your NanoDEP server then you may encounter a situation where, after moving the device over, you have `op_type_modified=X` but _not_ `op_type_added=Y` device log lines (the former are required fot the assigner to work). This appears to be an oddity with the ABM/ASM/BE portal that [the MicroMDM project has documented](https://github.com/micromdm/micromdm/wiki/DEP-auto-assignment#reassignment-oddities) with a (kludgy) workaround.
 
 ## deptokens
 
-The `deptokens` tool is an *optional* small stand-alone utility for decrypting the DEP OAuth tokens from the ABM/ASM/BE portal. It operates in one of two modes depending on if the `-token` switch is provided.
+The `deptokens` tool is an _optional_ small stand-alone utility for decrypting the DEP OAuth tokens from the ABM/ASM/BE portal. It operates in one of two modes depending on if the `-token` switch is provided.
 
 In "keypair generation" mode (that is, without specifying the `-token` switch) it will generate an RSA private key and certificate and save them both to disk (the private key optionally encrypted with the `-password` switch). The path to the certificate and key are provided in the `-cert` and `-key` switches, respectively.
 
