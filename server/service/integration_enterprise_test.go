@@ -938,6 +938,141 @@ func (s *integrationEnterpriseTestSuite) TestTeamPolicies() {
 	require.Len(t, ts.Policies, 0)
 }
 
+func (s *integrationEnterpriseTestSuite) TestNoTeamPolicies() {
+	t := s.T()
+	ctx := context.Background()
+
+	//
+	// Test a global admin can read and write "No team" policies.
+	//
+
+	// List "No team" policies.
+	ts := listTeamPoliciesResponse{}
+	s.DoJSON("GET", "/api/latest/fleet/teams/0/policies", nil, http.StatusOK, &ts)
+	require.Len(t, ts.Policies, 0)
+	require.Len(t, ts.InheritedPolicies, 0)
+	// Create a placeholder global policy.
+	_, err := s.ds.NewGlobalPolicy(ctx, nil, fleet.PolicyPayload{
+		Name:  "globalPolicy1",
+		Query: "SELECT 0;",
+	})
+	require.NoError(t, err)
+	// Create a "No team" policy.
+	tpParams := teamPolicyRequest{
+		Name:  "noTeamPolicy1",
+		Query: "SELECT 1;",
+	}
+	r := teamPolicyResponse{}
+	s.DoJSON("POST", "/api/latest/fleet/teams/0/policies", tpParams, http.StatusOK, &r)
+	require.NotNil(t, r.Policy.TeamID)
+	require.Zero(t, *r.Policy.TeamID)
+	// Test that we can't create a policy with the same name under "No team" domain.
+	s.DoJSON("POST", "/api/latest/fleet/teams/0/policies", tpParams, http.StatusConflict, &r)
+	// Create a second "No team" policy.
+	tpParams = teamPolicyRequest{
+		Name:  "noTeamPolicy2",
+		Query: "SELECT 2;",
+	}
+	r = teamPolicyResponse{}
+	s.DoJSON("POST", "/api/latest/fleet/teams/0/policies", tpParams, http.StatusOK, &r)
+	require.NotNil(t, r.Policy.TeamID)
+	require.Zero(t, *r.Policy.TeamID)
+	// List "No team" policies.
+	ts = listTeamPoliciesResponse{}
+	s.DoJSON("GET", "/api/latest/fleet/teams/0/policies", nil, http.StatusOK, &ts)
+	require.Len(t, ts.Policies, 2)
+	assert.Equal(t, "noTeamPolicy1", ts.Policies[0].Name)
+	assert.Equal(t, "SELECT 1;", ts.Policies[0].Query)
+	require.NotNil(t, ts.Policies[0].TeamID)
+	require.Zero(t, *ts.Policies[0].TeamID)
+	assert.Equal(t, "noTeamPolicy2", ts.Policies[1].Name)
+	assert.Equal(t, "SELECT 2;", ts.Policies[1].Query)
+	require.NotNil(t, ts.Policies[1].TeamID)
+	require.Zero(t, *ts.Policies[1].TeamID)
+	require.Len(t, ts.InheritedPolicies, 1)
+	assert.Equal(t, "globalPolicy1", ts.InheritedPolicies[0].Name)
+	assert.Equal(t, "SELECT 0;", ts.InheritedPolicies[0].Query)
+	assert.Nil(t, ts.InheritedPolicies[0].TeamID)
+	// Test policy count for "No team" policies.
+	tc := countTeamPoliciesResponse{}
+	s.DoJSON("GET", "/api/latest/fleet/teams/0/policies/count", nil, http.StatusOK, &tc)
+	require.Equal(t, 2, tc.Count)
+	// Test merge inherited for "No team" policies.
+	ts = listTeamPoliciesResponse{}
+	s.DoJSON("GET", "/api/latest/fleet/teams/0/policies", nil, http.StatusOK, &ts, "merge_inherited", "true", "order_key", "team_id", "order_direction", "desc")
+	require.Len(t, ts.Policies, 3)
+	require.Nil(t, ts.InheritedPolicies)
+	assert.Equal(t, "noTeamPolicy1", ts.Policies[0].Name)
+	assert.Equal(t, "SELECT 1;", ts.Policies[0].Query)
+	assert.Equal(t, "noTeamPolicy2", ts.Policies[1].Name)
+	assert.Equal(t, "SELECT 2;", ts.Policies[1].Query)
+	assert.Equal(t, "globalPolicy1", ts.Policies[2].Name)
+	assert.Equal(t, "SELECT 0;", ts.Policies[2].Query)
+	// Test merge inherited count for "No team" policies.
+	countResp := countTeamPoliciesResponse{}
+	s.DoJSON("GET", "/api/latest/fleet/teams/0/policies/count", nil, http.StatusOK, &countResp, "merge_inherited", "true")
+	require.Nil(t, countResp.Err)
+	require.Equal(t, 3, countResp.Count)
+	// Test deleting "No team" policies.
+	deletePolicyParams := deleteTeamPoliciesRequest{
+		IDs: []uint{ts.Policies[0].ID},
+	}
+	deletePolicyResp := deleteTeamPoliciesResponse{}
+	s.DoJSON("POST", "/api/latest/fleet/teams/0/policies/delete", deletePolicyParams, http.StatusOK, &deletePolicyResp)
+	ts = listTeamPoliciesResponse{}
+	s.DoJSON("GET", "/api/latest/fleet/teams/0/policies", nil, http.StatusOK, &ts)
+	require.Len(t, ts.Policies, 1)
+	assert.Equal(t, "noTeamPolicy2", ts.Policies[0].Name)
+	assert.Equal(t, "SELECT 2;", ts.Policies[0].Query)
+	noTeamPolicy2 := ts.Policies[0]
+
+	//
+	// Test that a team admin is not allowed to access "No team" policies.
+	//
+
+	team1, err := s.ds.NewTeam(context.Background(), &fleet.Team{
+		Name: "team1",
+	})
+	require.NoError(t, err)
+	oldToken := s.token
+	t.Cleanup(func() {
+		s.token = oldToken
+	})
+	password := test.GoodPassword
+	email := "testteam@user.com"
+	team1Admin := &fleet.User{
+		Name:       "test team user",
+		Email:      email,
+		GlobalRole: nil,
+		Teams: []fleet.UserTeam{
+			{
+				Team: *team1,
+				Role: fleet.RoleAdmin,
+			},
+		},
+	}
+	require.NoError(t, team1Admin.SetPassword(password, 10, 10))
+	_, err = s.ds.NewUser(context.Background(), team1Admin)
+	require.NoError(t, err)
+
+	s.token = s.getTestToken(email, password)
+
+	ts = listTeamPoliciesResponse{}
+	s.DoJSON("GET", "/api/latest/fleet/teams/0/policies", nil, http.StatusForbidden, &ts)
+	tpParams = teamPolicyRequest{
+		Name:  "noTeamPolicy1",
+		Query: "SELECT 1;",
+	}
+	r = teamPolicyResponse{}
+	s.DoJSON("POST", "/api/latest/fleet/teams/0/policies", tpParams, http.StatusForbidden, &r)
+	tc = countTeamPoliciesResponse{}
+	s.DoJSON("GET", "/api/latest/fleet/teams/0/policies/count", nil, http.StatusForbidden, &tc)
+	deletePolicyParams = deleteTeamPoliciesRequest{
+		IDs: []uint{noTeamPolicy2.ID},
+	}
+	s.DoJSON("POST", "/api/latest/fleet/teams/0/policies/delete", deletePolicyParams, http.StatusForbidden, &deleteTeamPoliciesResponse{})
+}
+
 func (s *integrationEnterpriseTestSuite) TestTeamQueries() {
 	t := s.T()
 
@@ -10255,15 +10390,18 @@ func (s *integrationEnterpriseTestSuite) TestSoftwareInstallerUploadDownloadAndD
 
 		// create an orbit host that is not in the team
 		hostNotInTeam := createOrbitEnrolledHost(t, "windows", "orbit-host-no-team", s.ds)
-		// downloading installer still works because we allow it explicitly
+		// downloading installer doesn't work if the host doesn't have a pending install request
 		s.Do("POST", "/api/fleet/orbit/software_install/package?alt=media", orbitDownloadSoftwareInstallerRequest{
 			InstallerID:  installerID,
 			OrbitNodeKey: *hostNotInTeam.OrbitNodeKey,
-		}, http.StatusOK)
+		}, http.StatusForbidden)
 
 		// create an orbit host, assign to team
-		hostInTeam := createOrbitEnrolledHost(t, "windows", "orbit-host-team", s.ds)
+		hostInTeam := createOrbitEnrolledHost(t, "linux", "orbit-host-team", s.ds)
 		require.NoError(t, s.ds.AddHostsToTeam(context.Background(), &createTeamResp.Team.ID, []uint{hostInTeam.ID}))
+
+		// Create a software installation request
+		s.Do("POST", fmt.Sprintf("/api/latest/fleet/hosts/%d/software/install/%d", hostInTeam.ID, titleID), installSoftwareRequest{}, http.StatusAccepted)
 
 		// requesting download with alt != media fails
 		r = s.Do("POST", "/api/fleet/orbit/software_install/package?alt=FOOBAR", orbitDownloadSoftwareInstallerRequest{
@@ -10279,6 +10417,28 @@ func (s *integrationEnterpriseTestSuite) TestSoftwareInstallerUploadDownloadAndD
 			OrbitNodeKey: *hostInTeam.OrbitNodeKey,
 		}, http.StatusOK)
 		checkDownloadResponse(t, r, payload.Filename)
+
+		// Get execution ID, normally comes from orbit config
+		var installUUID string
+		mysql.ExecAdhocSQL(t, s.ds, func(q sqlx.ExtContext) error {
+			return sqlx.GetContext(context.Background(), q, &installUUID, "SELECT execution_id FROM host_software_installs WHERE host_id = ? AND install_script_exit_code IS NULL", hostInTeam.ID)
+		})
+
+		// Installation complete, host no longer has access to software
+		s.Do("POST", "/api/fleet/orbit/software_install/result", orbitPostSoftwareInstallResultRequest{
+			OrbitNodeKey: *hostInTeam.OrbitNodeKey,
+			HostSoftwareInstallResultPayload: &fleet.HostSoftwareInstallResultPayload{
+				HostID:                hostInTeam.ID,
+				InstallUUID:           installUUID,
+				InstallScriptExitCode: ptr.Int(0),
+				InstallScriptOutput:   ptr.String("done"),
+			},
+		}, http.StatusNoContent)
+
+		r = s.Do("POST", "/api/fleet/orbit/software_install/package?alt=media", orbitDownloadSoftwareInstallerRequest{
+			InstallerID:  installerID,
+			OrbitNodeKey: *hostInTeam.OrbitNodeKey,
+		}, http.StatusForbidden)
 
 		// delete the installer
 		s.Do("DELETE", fmt.Sprintf("/api/latest/fleet/software/titles/%d/available_for_install", titleID), nil, http.StatusNoContent, "team_id", fmt.Sprintf("%d", *payload.TeamID))
@@ -10322,14 +10482,14 @@ func (s *integrationEnterpriseTestSuite) TestSoftwareInstallerUploadDownloadAndD
 
 		// create an orbit host that is not in the team
 		hostNotInTeam := createOrbitEnrolledHost(t, "windows", "orbit-host-no-team", s.ds)
-		// downloading installer still works because we allow it explicitly
+		// downloading installer fails because there's no install request
 		s.Do("POST", "/api/fleet/orbit/software_install/package?alt=media", orbitDownloadSoftwareInstallerRequest{
 			InstallerID:  installerID,
 			OrbitNodeKey: *hostNotInTeam.OrbitNodeKey,
-		}, http.StatusOK)
+		}, http.StatusForbidden)
 
 		// create an orbit host, assign to team
-		hostInTeam := createOrbitEnrolledHost(t, "windows", "orbit-host-team", s.ds)
+		hostInTeam := createOrbitEnrolledHost(t, "linux", "orbit-host-team", s.ds)
 
 		// requesting download with alt != media fails
 		r = s.Do("POST", "/api/fleet/orbit/software_install/package?alt=FOOBAR", orbitDownloadSoftwareInstallerRequest{
@@ -10339,12 +10499,37 @@ func (s *integrationEnterpriseTestSuite) TestSoftwareInstallerUploadDownloadAndD
 		errMsg := extractServerErrorText(r.Body)
 		require.Contains(t, errMsg, "only alt=media is supported")
 
+		// Create a software installation request
+		s.Do("POST", fmt.Sprintf("/api/latest/fleet/hosts/%d/software/install/%d", hostInTeam.ID, titleID), installSoftwareRequest{}, http.StatusAccepted)
+
 		// valid download
 		r = s.Do("POST", "/api/fleet/orbit/software_install/package?alt=media", orbitDownloadSoftwareInstallerRequest{
 			InstallerID:  installerID,
 			OrbitNodeKey: *hostInTeam.OrbitNodeKey,
 		}, http.StatusOK)
 		checkDownloadResponse(t, r, payload.Filename)
+
+		// Get execution ID, normally comes from orbit config
+		var installUUID string
+		mysql.ExecAdhocSQL(t, s.ds, func(q sqlx.ExtContext) error {
+			return sqlx.GetContext(context.Background(), q, &installUUID, "SELECT execution_id FROM host_software_installs WHERE host_id = ? AND install_script_exit_code IS NULL", hostInTeam.ID)
+		})
+
+		// Installation complete, host no longer has access to software
+		s.Do("POST", "/api/fleet/orbit/software_install/result", orbitPostSoftwareInstallResultRequest{
+			OrbitNodeKey: *hostInTeam.OrbitNodeKey,
+			HostSoftwareInstallResultPayload: &fleet.HostSoftwareInstallResultPayload{
+				HostID:                hostInTeam.ID,
+				InstallUUID:           installUUID,
+				InstallScriptExitCode: ptr.Int(0),
+				InstallScriptOutput:   ptr.String("done"),
+			},
+		}, http.StatusNoContent)
+
+		r = s.Do("POST", "/api/fleet/orbit/software_install/package?alt=media", orbitDownloadSoftwareInstallerRequest{
+			InstallerID:  installerID,
+			OrbitNodeKey: *hostInTeam.OrbitNodeKey,
+		}, http.StatusForbidden)
 
 		// delete the installer
 		s.Do("DELETE", fmt.Sprintf("/api/latest/fleet/software/titles/%d/available_for_install", titleID), nil, http.StatusNoContent, "team_id", "0")
@@ -13064,13 +13249,12 @@ func (s *integrationEnterpriseTestSuite) TestVPPAppsWithoutMDM() {
 func (s *integrationEnterpriseTestSuite) TestPolicyAutomationsSoftwareInstallers() {
 	t := s.T()
 	ctx := context.Background()
+	test.CreateInsertGlobalVPPToken(t, s.ds)
 
 	team1, err := s.ds.NewTeam(ctx, &fleet.Team{Name: t.Name() + "team1"})
 	require.NoError(t, err)
 	team2, err := s.ds.NewTeam(ctx, &fleet.Team{Name: t.Name() + "team2"})
 	require.NoError(t, err)
-
-	test.CreateInsertGlobalVPPToken(t, s.ds)
 
 	newHost := func(name string, teamID *uint, platform string) *fleet.Host {
 		h, err := s.ds.NewHost(ctx, &fleet.Host{
