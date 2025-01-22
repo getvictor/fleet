@@ -417,6 +417,7 @@ for host_hostname in "${all_hostnames[@]}"; do
     done
 done
 
+prompt "Check that your orbit is on 1.38.2 on all your devices"
 echo "Downgrading to $OLD_FULL_VERSION..."
 cat << EOF > downgrade.yml
 ---
@@ -505,6 +506,7 @@ for pkgType in "${pkgTypes[@]}"; do
 done
 
 echo "Installing fleetd package on macOS..."
+sudo ./orbit/tools/cleanup/cleanup_macos.sh
 sudo installer -pkg fleet-osquery.pkg -verbose -target /
 
 CURRENT_DIR=$(pwd)
@@ -613,6 +615,7 @@ for pkgType in "${pkgTypes[@]}"; do
 done
 
 echo "Installing fleetd package on macOS..."
+sudo ./orbit/tools/cleanup/cleanup_macos.sh
 sudo installer -pkg fleet-osquery.pkg -verbose -target /
 
 CURRENT_DIR=$(pwd)
