@@ -2722,6 +2722,7 @@ func hostVPPInstalls(ds *Datastore, ctx context.Context, hostID uint, globalOrTe
 	vppInstallsStmt := fmt.Sprintf(`
         (   -- upcoming_vpp_install
             SELECT
+				vpp_apps.title_id AS id,
                 ua.execution_id AS last_install_install_uuid,
                 ua.created_at AS last_install_installed_at,
                 vaua.adam_id AS vpp_app_adam_id,
@@ -2740,7 +2741,9 @@ func hostVPPInstalls(ds *Datastore, ctx context.Context, hostID uint, globalOrTe
                 (ua2.priority < ua.priority OR ua2.created_at > ua.created_at)
 			LEFT JOIN
 				vpp_apps_teams vat ON vaua.adam_id = vat.adam_id AND vaua.platform = vat.platform AND vat.global_or_team_id = :global_or_team_id
-            WHERE
+			INNER JOIN
+				vpp_apps ON vaua.adam_id = vpp_apps.adam_id AND vaua.platform = vpp_apps.platform
+			WHERE
 				-- selfServiceFilter
 				%s
                 ua.host_id = :host_id AND
@@ -2749,6 +2752,7 @@ func hostVPPInstalls(ds *Datastore, ctx context.Context, hostID uint, globalOrTe
         ) UNION (
 		 	-- last_vpp_install
             SELECT
+				vpp_apps.title_id AS id,
                 hvsi.command_uuid AS last_install_install_uuid,
                 hvsi.created_at AS last_install_installed_at,
                 hvsi.adam_id AS vpp_app_adam_id,
@@ -2767,7 +2771,9 @@ func hostVPPInstalls(ds *Datastore, ctx context.Context, hostID uint, globalOrTe
                     (hvsi.created_at < hvsi2.created_at OR (hvsi.created_at = hvsi2.created_at AND hvsi.id < hvsi2.id))
 			LEFT JOIN
 				vpp_apps_teams vat ON hvsi.adam_id = vat.adam_id AND hvsi.platform = vat.platform AND vat.global_or_team_id = :global_or_team_id
-            WHERE
+            INNER JOIN
+				vpp_apps ON hvsi.adam_id = vpp_apps.adam_id AND hvsi.platform = vpp_apps.platform
+			WHERE
 				-- selfServiceFilter
 				%s
                 hvsi.host_id = :host_id AND
@@ -2966,6 +2972,7 @@ func (ds *Datastore) ListHostSoftware(ctx context.Context, host *fleet.Host, opt
 	}
 
 	hostInstalledSoftware, err := hostInstalledSoftware(ds, ctx, host.ID)
+	hostInstalledSoftwareTitleSet := make(map[uint]struct{})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -2978,6 +2985,7 @@ func (ds *Datastore) ListHostSoftware(ctx context.Context, host *fleet.Host, opt
 
 		if s.SoftwareID != nil {
 			bySoftwareID[*s.SoftwareID] = s
+			hostInstalledSoftwareTitleSet[*s.SoftwareID] = struct{}{}
 		}
 	}
 
@@ -2988,6 +2996,12 @@ func (ds *Datastore) ListHostSoftware(ctx context.Context, host *fleet.Host, opt
 	byVPPAdamID := make(map[string]*hostSoftware)
 	for _, s := range hostVPPInstalls {
 		if s.VPPAppAdamID != nil {
+			// If a VPP app is already installed on the host, we don't need to double count it
+			// until we merge the two fetch queries later on in this method
+			// we have to manually remove any VPP apps that are also being returned by the host_software table
+			if _, exists := hostInstalledSoftwareTitleSet[s.ID]; exists {
+				continue
+			}
 			byVPPAdamID[*s.VPPAppAdamID] = s
 		}
 	}
@@ -3363,17 +3377,21 @@ func (ds *Datastore) ListHostSoftware(ctx context.Context, host *fleet.Host, opt
 				softwareVulnerableJoin += " AND ( "
 				if !opts.VulnerableOnly && opts.ListOptions.MatchQuery != "" {
 					softwareVulnerableJoin += `
-						NOT EXISTS (
-							SELECT 1
-							FROM 
-								software_cve
-							WHERE
-								software_cve.software_id = software.id
-						) OR
+					    -- Software without vulnerabilities
+						(
+							NOT EXISTS (
+								SELECT 1
+								FROM
+									software_cve
+								WHERE
+									software_cve.software_id = software.id
+							) ` + matchClause + `
+					    ) OR
 					`
 				}
 
 				softwareVulnerableJoin += `
+				-- Software with vulnerabilities
 				EXISTS (
 					SELECT 1
 					FROM
@@ -3390,8 +3408,12 @@ func (ds *Datastore) ListHostSoftware(ctx context.Context, host *fleet.Host, opt
 						software_cve.software_id = software.id
 				`
 				softwareVulnerableJoin += cveMetaFilter
-				softwareVulnerableJoin += "\n" + cveMatchClause
-				softwareVulnerableJoin += "\n))"
+				softwareVulnerableJoin += "\n" + strings.ReplaceAll(cveMatchClause, "AND", "AND (")
+				softwareVulnerableJoin += strings.ReplaceAll(matchClause, "AND", "OR") + ")"
+				softwareVulnerableJoin += "\n)"
+				if !opts.VulnerableOnly && opts.ListOptions.MatchQuery != "" {
+					softwareVulnerableJoin += ")"
+				}
 			}
 
 			installedSoftwareJoinsCondition := ""
@@ -3412,7 +3434,6 @@ func (ds *Datastore) ListHostSoftware(ctx context.Context, host *fleet.Host, opt
 			WHERE
 				software_titles.id IN (?)
 			%s
-				AND true
 			` + softwareOnlySelfServiceClause + `
 			-- GROUP by for software
 			%s
@@ -3431,7 +3452,6 @@ func (ds *Datastore) ListHostSoftware(ctx context.Context, host *fleet.Host, opt
 			if err != nil {
 				return nil, nil, ctxerr.Wrap(ctx, err, "build named query for software titles")
 			}
-			softwareTitleStatement = strings.ReplaceAll(softwareTitleStatement, "AND true", matchClause)
 			args = append(args, softwareTitleArgsNamedArgs...)
 			args = append(args, softwareTitleArgs...)
 			if len(cveNamedArgs) > 0 {
@@ -3441,6 +3461,8 @@ func (ds *Datastore) ListHostSoftware(ctx context.Context, host *fleet.Host, opt
 				args = append(args, cveMatchArgs...)
 			}
 			if len(matchArgs) > 0 {
+				args = append(args, matchArgs...)
+				// have to append twice because we have two groups to match title with
 				args = append(args, matchArgs...)
 			}
 			stmt += softwareTitleStatement
